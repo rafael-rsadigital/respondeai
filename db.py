@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
 
-DB_PATH = Path(__file__).with_name("reviews.sqlite3")
+DB_PATH = Path(os.getenv("DATABASE_PATH", "/tmp/reviews.sqlite3" if os.getenv("VERCEL") else str(Path(__file__).with_name("reviews.sqlite3"))))
 
 
 def connect() -> sqlite3.Connection:

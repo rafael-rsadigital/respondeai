@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Respostas de avaliações</title>
+  <style>
+    :root { --ink:#17212b; --muted:#6c7782; --line:#dde4ea; --paper:#f7f9fb; --accent:#176b87; --green:#237a58; --amber:#9b6811; --red:#ad3c3c; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; }
+    header { background:#fff; border-bottom:1px solid var(--line); padding:28px max(24px, calc((100% - 1120px)/2)); display:flex; justify-content:space-between; align-items:end; gap:20px; }
+    h1 { margin:0; letter-spacing:-.03em; font-size:28px; } .subtitle { color:var(--muted); margin:5px 0 0; }
+    main { max-width:1120px; margin:26px auto; padding:0 24px; } .stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+    .stat, .card { background:#fff; border:1px solid var(--line); border-radius:14px; } .stat { padding:12px 16px; min-width:130px; } .stat b { display:block; font-size:22px; } .stat span { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; } .toolbar a { text-decoration:none; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:7px 13px; background:#fff; } .toolbar a.active { color:#fff; background:var(--accent); border-color:var(--accent); }
+    .card { padding:20px; margin-bottom:14px; } .top { display:flex; justify-content:space-between; gap:18px; } .author { font-weight:700; } .meta { color:var(--muted); font-size:13px; } .rating { color:#b27b16; letter-spacing:2px; white-space:nowrap; } .review-text { font-size:16px; margin:17px 0; }
+    .status { display:inline-block; border-radius:999px; padding:4px 9px; font-size:12px; font-weight:700; text-transform:uppercase; } .pending { color:var(--muted); background:#eef1f4; } .draft { color:var(--amber); background:#fff4d7; } .approved { color:var(--green); background:#ddf3e7; } .published { color:#176b87; background:#dff4fa; }
+    form { margin-top:14px; } textarea { width:100%; min-height:82px; resize:vertical; padding:12px; border:1px solid var(--line); border-radius:9px; font:inherit; } button { border:0; border-radius:8px; padding:9px 13px; font-weight:700; cursor:pointer; margin:8px 7px 0 0; } .primary { color:#fff; background:var(--accent); } .secondary { color:var(--ink); background:#eaf0f3; } .publish { color:#fff; background:var(--green); } .hint { color:var(--muted); font-size:13px; }
+    .flash { padding:12px 14px; border-radius:9px; margin-bottom:14px; background:#eaf5f8; color:var(--accent); } .flash.error { background:#fff0f0; color:var(--red); }
+    @media (max-width:650px) { header { display:block; } .top { display:block; } .rating { margin-top:8px; } }
+  </style>
+</head>
+<body>
+<header><div><h1>Respostas de avaliações</h1><p class="subtitle">Revisar, aprovar e publicar — sempre com comando explícito.</p></div><span class="status {{ status if status != 'all' else 'pending' }}">MVP local</span></header>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+  <div class="stats"><div class="stat"><b>{{ counts.pending }}</b><span>Pendentes</span></div><div class="stat"><b>{{ counts.draft }}</b><span>Em revisão</span></div><div class="stat"><b>{{ counts.approved }}</b><span>Aprovadas</span></div><div class="stat"><b>{{ counts.published }}</b><span>Publicadas</span></div></div>
+  <nav class="toolbar">{% for key, label in [('all','Todas'),('pending','Pendentes'),('draft','Em revisão'),('approved','Aprovadas'),('published','Publicadas')] %}<a class="{{ 'active' if status == key else '' }}" href="{{ url_for('index', status=key) }}">{{ label }}</a>{% endfor %}</nav>
+  {% for review in reviews %}
+  <article class="card"><div class="top"><div><div class="author">{{ review.author }}</div><div class="meta">{{ review.source }} · {{ review.reviewed_at }}</div></div><div><div class="rating">{{ '★' * review.rating }}{{ '☆' * (5-review.rating) }}</div><span class="status {{ review.status }}">{{ review.status }}</span></div></div>
+    <div class="review-text">“{{ review.text }}”</div>
+    {% if review.status == 'published' %}<p class="hint">Resposta publicada em {{ review.published_at }}.</p>{% elif review.status == 'approved' %}<p class="hint">Resposta aprovada. O próximo passo é o comando de publicação.</p><form method="post" action="{{ url_for('publish', review_id=review.id) }}"><button class="publish">Publicar resposta</button></form>
+    {% else %}<form method="post" action="{{ url_for('approve', review_id=review.id) }}"><textarea name="reply" placeholder="Gere uma sugestão ou escreva a resposta...">{{ review.suggested_reply or '' }}</textarea><button class="primary" formaction="{{ url_for('generate', review_id=review.id) }}" formmethod="post">Gerar sugestão</button>{% if review.suggested_reply %}<button class="secondary" type="submit">Aprovar resposta</button>{% endif %}</form>{% endif %}
+  </article>
+  {% else %}<div class="card"><p>Nenhuma avaliação neste filtro.</p></div>{% endfor %}
+</main>
+</body>
+</html>
